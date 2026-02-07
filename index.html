@@ -52,6 +52,11 @@ li {
 <div id="gameScreen">
   <p id="gameRoomCode"></p>
 
+  <!-- Botão do host -->
+  <button id="startBtn" onclick="startGame()" style="display:none">
+    Começar jogo
+  </button>
+
   <h2 id="question">Aguardando pergunta...</h2>
   <h3 id="timer"></h3>
 
@@ -80,10 +85,9 @@ const rankingList = document.getElementById("ranking");
 
 const roomInfo = document.getElementById("roomInfo");
 const gameRoomCode = document.getElementById("gameRoomCode");
+const startBtn = document.getElementById("startBtn");
 
-/* =====================
-   CONEXÃO
-===================== */
+/* ===== Conexão ===== */
 
 socket.onopen = () => {
   connected = true;
@@ -95,9 +99,7 @@ socket.onclose = () => {
   roomInfo.innerText = "Desconectado do servidor.";
 };
 
-/* =====================
-   SALAS
-===================== */
+/* ===== Salas ===== */
 
 function createRoom() {
   if (!connected) {
@@ -140,25 +142,31 @@ function joinRoom() {
   }));
 }
 
-/* =====================
-   MENSAGENS DO SERVIDOR
-===================== */
+function startGame() {
+  socket.send(JSON.stringify({
+    type: "start_game"
+  }));
+}
+
+/* ===== Mensagens ===== */
 
 socket.onmessage = e => {
   const data = JSON.parse(e.data);
 
   if (data.type === "room_created") {
     gameRoomCode.innerText = "Código da sala: " + data.code;
-
     roomScreen.style.display = "none";
     gameScreen.style.display = "block";
   }
 
   if (data.type === "room_joined") {
     gameRoomCode.innerText = "Sala: " + data.code;
-
     roomScreen.style.display = "none";
     gameScreen.style.display = "block";
+  }
+
+  if (data.type === "you_are_host") {
+    startBtn.style.display = "inline";
   }
 
   if (data.type === "room_not_found") {
@@ -196,9 +204,7 @@ socket.onmessage = e => {
   }
 };
 
-/* =====================
-   RESPOSTAS
-===================== */
+/* ===== Resposta ===== */
 
 function sendAnswer() {
   if (!input.value) return;
@@ -216,7 +222,6 @@ input.addEventListener("keypress", e => {
     sendAnswer();
 });
 </script>
-
 
 </body>
 </html>
