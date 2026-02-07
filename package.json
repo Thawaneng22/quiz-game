@@ -1,0 +1,16 @@
+{
+  "name": "thawa",
+  "version": "1.0.0",
+  "description": "Quiz multiplayer",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "ws": "^8.0.0"
+  }
+}

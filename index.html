@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Quiz Multiplayer</title>
+
+<style>
+body {
+  font-family: Arial;
+  text-align: center;
+}
+
+img {
+  max-width: 300px;
+  margin: 10px;
+}
+
+ul {
+  list-style: none;
+  padding: 0;
+}
+
+li {
+  margin: 4px;
+}
+</style>
+
+</head>
+
+<body>
+
+<h2 id="question">Conectando...</h2>
+<h3 id="timer"></h3>
+
+<img id="img" style="display:none"><br>
+
+<input id="answer" placeholder="Digite a resposta">
+<button onclick="sendAnswer()">Responder</button>
+
+<h3>Ranking</h3>
+<ul id="ranking"></ul>
+
+<script>
+const socket = new WebSocket("ws://localhost:3000");
+
+const questionText = document.getElementById("question");
+const timerText = document.getElementById("timer");
+const input = document.getElementById("answer");
+const img = document.getElementById("img");
+const rankingList = document.getElementById("ranking");
+
+const name = prompt("Seu nome?") || "Jogador";
+
+socket.onopen = () => {
+  socket.send(JSON.stringify({
+    type: "setName",
+    name: name
+  }));
+};
+
+socket.onmessage = e => {
+  const data = JSON.parse(e.data);
+
+  if (data.type === "question") {
+    questionText.innerText = data.question;
+    input.value = "";
+
+    if (data.image) {
+      img.src = data.image;
+      img.style.display = "block";
+    } else {
+      img.style.display = "none";
+    }
+  }
+
+  if (data.type === "timer") {
+    timerText.innerText = "Tempo restante: " + data.time + " s";
+  }
+
+  if (data.type === "ranking") {
+    rankingList.innerHTML = "";
+
+    data.ranking.forEach(p => {
+      const li = document.createElement("li");
+      li.textContent = p.name + " - " + p.score + " pts";
+      rankingList.appendChild(li);
+    });
+  }
+
+  if (data.type === "end") {
+    alert("Pontuação alvo alcançada!");
+  }
+};
+
+function sendAnswer() {
+  if (!input.value) return;
+
+  socket.send(JSON.stringify({
+    type: "answer",
+    answer: input.value
+  }));
+
+  input.value = "";
+}
+
+input.addEventListener("keypress", e => {
+  if (e.key === "Enter")
+    sendAnswer();
+});
+</script>
+
+</body>
+</html>
