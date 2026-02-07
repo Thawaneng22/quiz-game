@@ -23,9 +23,8 @@ const rooms = {};
 function generateRoomCode() {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
   let code = "";
-  for (let i = 0; i < 5; i++) {
+  for (let i = 0; i < 5; i++)
     code += chars[Math.floor(Math.random() * chars.length)];
-  }
   return code;
 }
 
@@ -119,8 +118,7 @@ function newQuestion() {
   broadcast({
     type: "question",
     question: currentQuestion.question,
-    image: currentQuestion.image,
-    time: QUESTION_TIME
+    image: currentQuestion.image
   });
 
   clearInterval(timer);
@@ -137,7 +135,7 @@ function newQuestion() {
 }
 
 /* =========================
-   CONEXÃO DOS JOGADORES
+   CONEXÕES
 ========================= */
 
 wss.on("connection", ws => {
@@ -154,34 +152,10 @@ wss.on("connection", ws => {
 
     /* ===== Criar sala ===== */
     if (data.type === "create_room") {
-    let code;
-    do {
-     code = generateRoomCode();
-    } while (rooms[code]);
-
-  rooms[code] = {
-    host: ws,
-    players: [ws],
-    theme: data.theme,
-    scoreGoal: data.scoreGoal
-  };
-
-  ws.roomCode = code;
-
-  ws.send(JSON.stringify({
-    type: "room_created",
-    code: code
-  }));
-
-  // AVISA QUE ELE É O HOST
-  ws.send(JSON.stringify({
-    type: "you_are_host"
-  }));
-
-  return;
-}
-
-      const code = generateRoomCode();
+      let code;
+      do {
+        code = generateRoomCode();
+      } while (rooms[code]);
 
       rooms[code] = {
         host: ws,
@@ -194,7 +168,11 @@ wss.on("connection", ws => {
 
       ws.send(JSON.stringify({
         type: "room_created",
-        code: code
+        code
+      }));
+
+      ws.send(JSON.stringify({
+        type: "you_are_host"
       }));
 
       return;
@@ -222,10 +200,22 @@ wss.on("connection", ws => {
       return;
     }
 
-    /* ===== Nome do jogador ===== */
+    /* ===== Definir nome ===== */
     if (data.type === "setName") {
       players.get(ws).name = data.name || "Jogador";
       sendRanking();
+      return;
+    }
+
+    /* ===== Iniciar jogo (host) ===== */
+    if (data.type === "start_game") {
+      const room = rooms[ws.roomCode];
+      if (!room) return;
+
+      if (room.host === ws)
+        newQuestion();
+
+      return;
     }
 
     /* ===== Resposta ===== */
@@ -254,6 +244,8 @@ wss.on("connection", ws => {
           sendRanking();
         }
       }
+
+      return;
     }
   });
 
@@ -267,11 +259,9 @@ wss.on("connection", ws => {
       room.players =
         room.players.filter(p => p !== ws);
 
-      /* troca host */
       if (room.host === ws && room.players.length > 0)
         room.host = room.players[0];
 
-      /* remove sala vazia */
       if (room.players.length === 0)
         delete rooms[ws.roomCode];
     }
@@ -279,15 +269,3 @@ wss.on("connection", ws => {
     sendRanking();
   });
 });
-if (data.type === "start_game") {
-  const room = rooms[ws.roomCode];
-  if (!room) return;
-
-  if (room.host === ws) {
-    newQuestion();
-  }
-}
-
-newQuestion();
-
-console.log("Servidor rodando");
