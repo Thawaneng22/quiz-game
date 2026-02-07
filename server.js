@@ -1,7 +1,19 @@
+const http = require("http");
 const WebSocket = require("ws");
 
 const PORT = process.env.PORT || 3000;
-const wss = new WebSocket.Server({ port: PORT });
+
+const server = http.createServer((req, res) => {
+  res.writeHead(200);
+  res.end("Servidor do quiz rodando.");
+});
+
+const wss = new WebSocket.Server({ server });
+
+server.listen(PORT, () => {
+  console.log("Servidor rodando na porta", PORT);
+});
+
 
 
 const QUESTION_TIME = 15;
