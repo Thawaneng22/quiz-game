@@ -225,15 +225,26 @@ wss.on("connection", ws => {
     }
 
     /* ===== Iniciar jogo (host) ===== */
-    if (data.type === "start_game") {
-      const room = rooms[ws.roomCode];
-      if (!room) return;
+if (data.type === "start_game") {
+  const room = rooms[ws.roomCode];
+  if (!room) return;
 
-      if (room.host === ws)
-        newQuestion();
+  // só o host pode iniciar
+  if (room.host !== ws) return;
 
-      return;
-    }
+  // mínimo de jogadores
+  if (room.players.length < 2) {
+    ws.send(JSON.stringify({
+      type: "not_enough_players",
+      min: 2
+    }));
+    return;
+  }
+
+  newQuestion();
+  return;
+}
+
 
     /* ===== Resposta ===== */
     if (data.type === "answer") {
