@@ -14,7 +14,24 @@ server.listen(PORT, () => {
   console.log("Servidor rodando na porta", PORT);
 });
 
+/* =========================
+   SISTEMA DE SALAS
+========================= */
 
+const rooms = {};
+
+function generateRoomCode() {
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  let code = "";
+  for (let i = 0; i < 5; i++) {
+    code += chars[Math.floor(Math.random() * chars.length)];
+  }
+  return code;
+}
+
+/* =========================
+   CONFIGURAÇÃO DO JOGO
+========================= */
 
 const QUESTION_TIME = 15;
 const MAX_POINTS = 20;
@@ -42,6 +59,10 @@ const questions = [
     acceptedSingles: []
   }
 ];
+
+/* =========================
+   UTILIDADES
+========================= */
 
 function normalize(text) {
   return text
@@ -82,6 +103,10 @@ function sendRanking() {
   });
 }
 
+/* =========================
+   SISTEMA DE PERGUNTAS
+========================= */
+
 function newQuestion() {
   answeredPlayers.clear();
   correctPlayers.clear();
@@ -111,6 +136,10 @@ function newQuestion() {
   }, 1000);
 }
 
+/* =========================
+   CONEXÃO DOS JOGADORES
+========================= */
+
 wss.on("connection", ws => {
 
   players.set(ws, {
@@ -123,11 +152,56 @@ wss.on("connection", ws => {
   ws.on("message", msg => {
     const data = JSON.parse(msg);
 
+    /* ===== Criar sala ===== */
+    if (data.type === "create_room") {
+      const code = generateRoomCode();
+
+      rooms[code] = {
+        host: ws,
+        players: [ws],
+        theme: data.theme,
+        scoreGoal: data.scoreGoal
+      };
+
+      ws.roomCode = code;
+
+      ws.send(JSON.stringify({
+        type: "room_created",
+        code: code
+      }));
+
+      return;
+    }
+
+    /* ===== Entrar em sala ===== */
+    if (data.type === "join_room") {
+      const room = rooms[data.code];
+
+      if (!room) {
+        ws.send(JSON.stringify({
+          type: "room_not_found"
+        }));
+        return;
+      }
+
+      room.players.push(ws);
+      ws.roomCode = data.code;
+
+      ws.send(JSON.stringify({
+        type: "room_joined",
+        code: data.code
+      }));
+
+      return;
+    }
+
+    /* ===== Nome do jogador ===== */
     if (data.type === "setName") {
       players.get(ws).name = data.name || "Jogador";
       sendRanking();
     }
 
+    /* ===== Resposta ===== */
     if (data.type === "answer") {
 
       if (answeredPlayers.has(ws)) return;
@@ -156,12 +230,29 @@ wss.on("connection", ws => {
     }
   });
 
+  /* ===== Jogador sai ===== */
   ws.on("close", () => {
     players.delete(ws);
+
+    if (ws.roomCode && rooms[ws.roomCode]) {
+      const room = rooms[ws.roomCode];
+
+      room.players =
+        room.players.filter(p => p !== ws);
+
+      /* troca host */
+      if (room.host === ws && room.players.length > 0)
+        room.host = room.players[0];
+
+      /* remove sala vazia */
+      if (room.players.length === 0)
+        delete rooms[ws.roomCode];
+    }
+
     sendRanking();
   });
 });
 
 newQuestion();
 
-console.log("Servidor rodando em ws://localhost:3000");
+console.log("Servidor rodando");

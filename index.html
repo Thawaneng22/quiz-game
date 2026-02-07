@@ -23,26 +23,50 @@ ul {
 li {
   margin: 4px;
 }
+
+#gameScreen {
+  display: none;
+}
 </style>
 
 </head>
 
 <body>
 
-<h2 id="question">Conectando...</h2>
-<h3 id="timer"></h3>
+<div id="roomScreen">
+  <h2>Salas</h2>
 
-<img id="img" style="display:none"><br>
+  <input id="playerName" placeholder="Seu nome">
 
-<input id="answer" placeholder="Digite a resposta">
-<button onclick="sendAnswer()">Responder</button>
+  <h3>Criar sala</h3>
+  <input id="theme" placeholder="Tema">
+  <button onclick="createRoom()">Criar sala</button>
 
-<h3>Ranking</h3>
-<ul id="ranking"></ul>
+  <h3>Entrar em sala</h3>
+  <input id="roomCode" placeholder="Código">
+  <button onclick="joinRoom()">Entrar</button>
+
+  <p id="roomInfo"></p>
+</div>
+
+<div id="gameScreen">
+  <h2 id="question">Aguardando pergunta...</h2>
+  <h3 id="timer"></h3>
+
+  <img id="img" style="display:none"><br>
+
+  <input id="answer" placeholder="Digite a resposta">
+  <button onclick="sendAnswer()">Responder</button>
+
+  <h3>Ranking</h3>
+  <ul id="ranking"></ul>
+</div>
 
 <script>
-const socket = new WebSocket("wss://quiz-game-hw1x.onrender.com
-");
+const socket = new WebSocket("wss://quiz-game-hw1x.onrender.com");
+
+const roomScreen = document.getElementById("roomScreen");
+const gameScreen = document.getElementById("gameScreen");
 
 const questionText = document.getElementById("question");
 const timerText = document.getElementById("timer");
@@ -50,17 +74,59 @@ const input = document.getElementById("answer");
 const img = document.getElementById("img");
 const rankingList = document.getElementById("ranking");
 
-const name = prompt("Seu nome?") || "Jogador";
+function createRoom() {
+  const name = document.getElementById("playerName").value || "Jogador";
+  const theme = document.getElementById("theme").value;
 
-socket.onopen = () => {
   socket.send(JSON.stringify({
     type: "setName",
     name: name
   }));
-};
+
+  socket.send(JSON.stringify({
+    type: "create_room",
+    theme: theme,
+    scoreGoal: 120
+  }));
+}
+
+function joinRoom() {
+  const name = document.getElementById("playerName").value || "Jogador";
+  const code = document.getElementById("roomCode").value.toUpperCase();
+
+  socket.send(JSON.stringify({
+    type: "setName",
+    name: name
+  }));
+
+  socket.send(JSON.stringify({
+    type: "join_room",
+    code: code
+  }));
+}
 
 socket.onmessage = e => {
   const data = JSON.parse(e.data);
+
+  if (data.type === "room_created") {
+    document.getElementById("roomInfo").innerText =
+      "Sala criada! Código: " + data.code;
+
+    roomScreen.style.display = "none";
+    gameScreen.style.display = "block";
+  }
+
+  if (data.type === "room_joined") {
+    document.getElementById("roomInfo").innerText =
+      "Entrou na sala: " + data.code;
+
+    roomScreen.style.display = "none";
+    gameScreen.style.display = "block";
+  }
+
+  if (data.type === "room_not_found") {
+    alert("Sala não encontrada.");
+  }
 
   if (data.type === "question") {
     questionText.innerText = data.question;
