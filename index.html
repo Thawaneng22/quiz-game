@@ -67,6 +67,8 @@ li {
 <script>
 const socket = new WebSocket("wss://quiz-game-hw1x.onrender.com");
 
+let connected = false;
+
 const roomScreen = document.getElementById("roomScreen");
 const gameScreen = document.getElementById("gameScreen");
 
@@ -76,7 +78,33 @@ const input = document.getElementById("answer");
 const img = document.getElementById("img");
 const rankingList = document.getElementById("ranking");
 
+const roomInfo = document.getElementById("roomInfo");
+const gameRoomCode = document.getElementById("gameRoomCode");
+
+/* =====================
+   CONEXÃO
+===================== */
+
+socket.onopen = () => {
+  connected = true;
+  roomInfo.innerText = "Conectado ao servidor.";
+};
+
+socket.onclose = () => {
+  connected = false;
+  roomInfo.innerText = "Desconectado do servidor.";
+};
+
+/* =====================
+   SALAS
+===================== */
+
 function createRoom() {
+  if (!connected) {
+    alert("Ainda conectando ao servidor...");
+    return;
+  }
+
   const name = document.getElementById("playerName").value || "Jogador";
   const theme = document.getElementById("theme").value;
 
@@ -93,6 +121,11 @@ function createRoom() {
 }
 
 function joinRoom() {
+  if (!connected) {
+    alert("Ainda conectando ao servidor...");
+    return;
+  }
+
   const name = document.getElementById("playerName").value || "Jogador";
   const code = document.getElementById("roomCode").value.toUpperCase();
 
@@ -107,25 +140,26 @@ function joinRoom() {
   }));
 }
 
+/* =====================
+   MENSAGENS DO SERVIDOR
+===================== */
+
 socket.onmessage = e => {
   const data = JSON.parse(e.data);
 
- if (data.type === "room_created") {
-  document.getElementById("gameRoomCode").innerText =
-    "Código da sala: " + data.code;
+  if (data.type === "room_created") {
+    gameRoomCode.innerText = "Código da sala: " + data.code;
 
-  roomScreen.style.display = "none";
-  gameScreen.style.display = "block";
-}
+    roomScreen.style.display = "none";
+    gameScreen.style.display = "block";
+  }
 
   if (data.type === "room_joined") {
-  document.getElementById("gameRoomCode").innerText =
-    "Sala: " + data.code;
+    gameRoomCode.innerText = "Sala: " + data.code;
 
-  roomScreen.style.display = "none";
-  gameScreen.style.display = "block";
-}
-
+    roomScreen.style.display = "none";
+    gameScreen.style.display = "block";
+  }
 
   if (data.type === "room_not_found") {
     alert("Sala não encontrada.");
@@ -162,6 +196,10 @@ socket.onmessage = e => {
   }
 };
 
+/* =====================
+   RESPOSTAS
+===================== */
+
 function sendAnswer() {
   if (!input.value) return;
 
@@ -178,6 +216,7 @@ input.addEventListener("keypress", e => {
     sendAnswer();
 });
 </script>
+
 
 </body>
 </html>
