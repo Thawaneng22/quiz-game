@@ -50,6 +50,8 @@ li {
 </div>
 
 <div id="gameScreen">
+  <p id="gameRoomCode"></p>
+
   <h2 id="question">Aguardando pergunta...</h2>
   <h3 id="timer"></h3>
 
@@ -108,21 +110,22 @@ function joinRoom() {
 socket.onmessage = e => {
   const data = JSON.parse(e.data);
 
-  if (data.type === "room_created") {
-    document.getElementById("roomInfo").innerText =
-      "Sala criada! Código: " + data.code;
+ if (data.type === "room_created") {
+  document.getElementById("gameRoomCode").innerText =
+    "Código da sala: " + data.code;
 
-    roomScreen.style.display = "none";
-    gameScreen.style.display = "block";
-  }
+  roomScreen.style.display = "none";
+  gameScreen.style.display = "block";
+}
 
   if (data.type === "room_joined") {
-    document.getElementById("roomInfo").innerText =
-      "Entrou na sala: " + data.code;
+  document.getElementById("gameRoomCode").innerText =
+    "Sala: " + data.code;
 
-    roomScreen.style.display = "none";
-    gameScreen.style.display = "block";
-  }
+  roomScreen.style.display = "none";
+  gameScreen.style.display = "block";
+}
+
 
   if (data.type === "room_not_found") {
     alert("Sala não encontrada.");
