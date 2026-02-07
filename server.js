@@ -28,6 +28,21 @@ function generateRoomCode() {
   return code;
 }
 
+function sendRoomPlayers(roomCode) {
+  const room = rooms[roomCode];
+  if (!room) return;
+
+  const msg = JSON.stringify({
+    type: "room_players",
+    count: room.players.length
+  });
+
+  room.players.forEach(p => {
+    if (p.readyState === WebSocket.OPEN)
+      p.send(msg);
+  });
+}
+
 /* =========================
    CONFIGURAÇÃO DO JOGO
 ========================= */
@@ -128,11 +143,8 @@ function newQuestion() {
 
     broadcast({ type: "timer", time: timeLeft });
 
-    if (timeLeft <= 0) {
-  clearInterval(timer);
-  broadcast({ type: "round_end" });
-}
-
+    if (timeLeft <= 0)
+      newQuestion();
 
   }, 1000);
 }
@@ -178,6 +190,7 @@ wss.on("connection", ws => {
         type: "you_are_host"
       }));
 
+      sendRoomPlayers(code);
       return;
     }
 
@@ -200,6 +213,7 @@ wss.on("connection", ws => {
         code: data.code
       }));
 
+      sendRoomPlayers(data.code);
       return;
     }
 
@@ -267,8 +281,12 @@ wss.on("connection", ws => {
 
       if (room.players.length === 0)
         delete rooms[ws.roomCode];
+      else
+        sendRoomPlayers(ws.roomCode);
     }
 
     sendRanking();
   });
 });
+
+console.log("Servidor rodando");
