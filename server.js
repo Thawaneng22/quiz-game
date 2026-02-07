@@ -154,6 +154,33 @@ wss.on("connection", ws => {
 
     /* ===== Criar sala ===== */
     if (data.type === "create_room") {
+    let code;
+    do {
+     code = generateRoomCode();
+    } while (rooms[code]);
+
+  rooms[code] = {
+    host: ws,
+    players: [ws],
+    theme: data.theme,
+    scoreGoal: data.scoreGoal
+  };
+
+  ws.roomCode = code;
+
+  ws.send(JSON.stringify({
+    type: "room_created",
+    code: code
+  }));
+
+  // AVISA QUE ELE É O HOST
+  ws.send(JSON.stringify({
+    type: "you_are_host"
+  }));
+
+  return;
+}
+
       const code = generateRoomCode();
 
       rooms[code] = {
@@ -252,6 +279,14 @@ wss.on("connection", ws => {
     sendRanking();
   });
 });
+if (data.type === "start_game") {
+  const room = rooms[ws.roomCode];
+  if (!room) return;
+
+  if (room.host === ws) {
+    newQuestion();
+  }
+}
 
 newQuestion();
 
