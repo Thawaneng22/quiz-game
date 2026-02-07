@@ -128,8 +128,11 @@ function newQuestion() {
 
     broadcast({ type: "timer", time: timeLeft });
 
-    if (timeLeft <= 0)
-      newQuestion();
+    if (timeLeft <= 0) {
+  clearInterval(timer);
+  broadcast({ type: "round_end" });
+}
+
 
   }, 1000);
 }
