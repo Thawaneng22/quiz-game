@@ -229,10 +229,8 @@ if (data.type === "start_game") {
   const room = rooms[ws.roomCode];
   if (!room) return;
 
-  // só o host pode iniciar
   if (room.host !== ws) return;
 
-  // mínimo de jogadores
   if (room.players.length < 2) {
     ws.send(JSON.stringify({
       type: "not_enough_players",
@@ -241,9 +239,13 @@ if (data.type === "start_game") {
     return;
   }
 
+  // avisa clientes que o jogo começou
+  broadcast({ type: "game_started" });
+
   newQuestion();
   return;
 }
+
 
 
     /* ===== Resposta ===== */
