@@ -28,18 +28,25 @@ function generateRoomCode() {
   return code;
 }
 
+function broadcastRoom(roomCode, data) {
+  const room = rooms[roomCode];
+  if (!room) return;
+
+  const msg = JSON.stringify(data);
+
+  room.players.forEach(c => {
+    if (c.readyState === WebSocket.OPEN)
+      c.send(msg);
+  });
+}
+
 function sendRoomPlayers(roomCode) {
   const room = rooms[roomCode];
   if (!room) return;
 
-  const msg = JSON.stringify({
+  broadcastRoom(roomCode, {
     type: "room_players",
     count: room.players.length
-  });
-
-  room.players.forEach(p => {
-    if (p.readyState === WebSocket.OPEN)
-      p.send(msg);
   });
 }
 
@@ -224,29 +231,26 @@ wss.on("connection", ws => {
       return;
     }
 
-    /* ===== Iniciar jogo (host) ===== */
-if (data.type === "start_game") {
-  const room = rooms[ws.roomCode];
-  if (!room) return;
+    /* ===== Iniciar jogo ===== */
+    if (data.type === "start_game") {
+      const room = rooms[ws.roomCode];
+      if (!room) return;
 
-  if (room.host !== ws) return;
+      if (room.host !== ws) return;
 
-  if (room.players.length < 2) {
-    ws.send(JSON.stringify({
-      type: "not_enough_players",
-      min: 2
-    }));
-    return;
-  }
+      if (room.players.length < 2) {
+        ws.send(JSON.stringify({
+          type: "not_enough_players",
+          min: 2
+        }));
+        return;
+      }
 
-  // avisa clientes que o jogo começou
-  broadcast({ type: "game_started" });
+      broadcastRoom(ws.roomCode, { type: "game_started" });
 
-  newQuestion();
-  return;
-}
-
-
+      newQuestion();
+      return;
+    }
 
     /* ===== Resposta ===== */
     if (data.type === "answer") {
